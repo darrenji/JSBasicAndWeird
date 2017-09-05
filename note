@@ -1,0 +1,622 @@
+1. syntax parser:reads the code, check if grammar is valid, determine what it does
+
+2. lexical environment:sth sits physically in the code you write.涉及到语句块。
+
+3. execution context:a wrapper to help manage the code that is running运行的代码,lexical environments有很多，正在运行的lexical environment就是execution context.
+
+4. object:从键值对的角度来说，就是一个collectoin of name value pairs
+
+5. global execution context:里面有一个global object,还有this关键字，还有一个Outer Environment。在浏览器中，this指的是window,window就是global object。如果javascript运行在服务器上，那this指的就不是window了。
+
+6. global execution context的creation和hositing:set up memory space for variables and funcitons,这个过程叫做hoisting,所有变量的初始值是undefined.
+
+7. undefined: undefined是变量的初始值
+
+8. execution context,code execution:首先是全局的,global execution context,创建了global object, this, outer envrionment,然后是cration或者说是hositing环节，set up momory为变量和函数，接着就来到了executon code阶段了。
+
+9. single threaded, synchronous execution:一次执行一个命令
+
+10. function invocation:方法调用，方法名()
+
+function b(){}
+function a(){b();}
+a();
+
+global execution context,然后是creation和hoisting,为变量和函数分配内存的阶段，然后执行a(),产生有关a的execution context,这样还产生了execution stack, global execution context在execution stack的下方，a的exectuion context在global execution context的上面，在最上面的execution context就是正在执行的代码，然后执行b()的时候，b的execution context到了execution stack的最上面
+
+11. variable environment:where the variables live, how they related to each other in the memory.
+
+function b(){
+    var myVar;
+}
+
+function a(){
+    var myVar=2;
+    b();
+}
+
+var myVar = 1;
+a();
+
+以上myVar都在各自的execution context中。
+
+12. scope chain
+
+function b(){
+    console.log(myVar);
+}
+
+function a(){
+    var myVar=2;
+    b();
+}
+
+var myVar=1;
+a();
+
+a和b的execution context中都有一个引用，指向outer environment,即global execution context,所以这里打印出来的值是1.从lexecal environment的角度来看，b和a都是同级的，所有都指向global execution context.但，如果b属于a内部，那b的outer envrionment引用就指向a的execution context了。就是会朝global execution context这个方向，也就是scope chain去寻找变量。
+
+
+13.scope:where a variable is available in your code.es6中的let关键字创建一个变量，javascript engine会产生一个block scoping
+
+if(a>b){
+    let c=true;
+}
+
+c还是会有内存空间，但c的scope只限于当前的exeuction context,不会通过scope chain去往global execution context这个方向上去寻找变量。es6的javascript engine创建了一个blocking scoping.换句话说，let声明的变量只在当前所属的语句块中生效。
+
+14. asynchronous callback异步回调：一次有多个。到目前为止，知道的是当所有的execution contenxt结束后，javascript engine会检查event queue是否有事件，如果有事件，就会产生有关事件的execution context.
+
+function waitThreeSectonds(){
+    var ms = 3000 + new Date().getTime();
+    while(new Date()<ms){
+        console.log('finished function');
+    }
+}
+
+function clickHandler(){
+    cosole.log('click event');
+}
+
+document.addEventListener('click', clickHandler);
+
+waitThreeSeconds();
+console.log('finished execution');
+
+如果没有点击页面，结果是：
+finished function
+finished execution
+
+如果在页面加载的时候，即在执行waitThreeSeconds函数的时候点击页面，结果是：
+finsihed function 
+finished execution
+click event
+
+这说明，javascript engine是在所有exeuction context执行完后，再去看event queue,然后执行click事件。这个过程看起来就像是异步。
+
+15. dynamic typing:直到代码运行的时候才确定类型。
+
+如果是静态类型赋值的话，以下会报错
+
+bool isNew = 'hello';
+
+但，如果是动态类型赋值，以下不会拨错
+
+var isNew=true;
+isNew='yup';
+isNew=1;
+
+15. primitive types:代表单一值，不是object.undefined是变量没有赋值时的初始状态，不能把undefined赋值给变量。null也表示lack of existence,但null可以赋值给变量。bool类型，number类型，string类型，es6中的symbol也是primitive类型。
+
+16. operator:是特殊函数，接受两个参数，返回值。
+
+17. operator precedence:higher precedence wins
+
+var a=2,b=3,c=4;
+a=b=c;
+console.log(a);//4
+console.log(b);//4
+console.log(c);//4
+相同操作符，看associatity,这里是右到左。
+
+18. coercion:把一个值从一个类型转换成另一种类型。
+
+var a = 1 + '2';
+console.log(a);//12
+
+19. comparision operators:
+
+console.log(3<2<1);//true
+
+首先是从左到右比较，fale<1 为true?false经过coercing变成了0.
+
+Number(undefined);//NaN
+Number(null);//0，所有null<1为true
+""==0;//true
+""==false;//true
+
+===和!==不会执行coercing。
+
+20. existence和boolean
+
+Boolean(undefined)//false
+Boolean(null)//false
+Boolean("")//false
+
+所以，才有了这样的写法：
+
+var a;
+if(a){
+    console.log('sth is there');
+}
+
+但是
+Boolean(0)//false
+
+所以，写法升级为：
+
+var a;
+if(a||a===0){
+    console.log('sth');
+}
+
+另外，
+false||true 为true
+
+还可以写成：
+
+var a;
+if(a || true){
+    console.log('sth');
+}
+
+还可以写成：
+
+var a;
+if(a ||a===0){
+    console.log('sth');
+}
+
+21. default values:
+
+function greet(name){
+    console.log('hello ' + name);
+}
+greet('Tony'); //hello Tony
+
+如果不输入参数呢？
+
+greet();//hello undefined
+
+我们要给形参一个默认值。
+
+function greet(name){
+    name = name || 'default name';
+    console.log('hello ' + name);
+}
+
+22. object and the dot:object是键值集合，有属性和函数，object有一个primitive属性是Property。
+
+var person = new Object();
+person["firstname"]="";
+person["firstname"]
+person.firstname
+person.address=new Object();
+person.address.street="";
+
+23. faking namespace:
+
+var english={};
+var spanish={};
+english.greet='Hello';
+spanish.greet='Hola';
+
+这里有一个细节需要注意，如下的写法是错误的：
+
+english.greetings.greet='';
+
+greetings的值是undefined。所以应该这么写：
+
+var english={};
+english.greetings={};
+english.greetings.greet='';
+
+24. JSON and Object literal
+
+var objectLiteral={
+    firstname:'Mary',
+    isAProgrammer:true
+};
+
+JSON:
+
+{
+    "firstname":"",
+    "isAProgrammer":true
+}
+
+把Object转换成JSON:
+
+console.log(JSON.stringify(objectLiteral));
+
+把Json转换成Object:
+console.log(JSON.parse('{"firstname":"","isAPrgorammer":true}'))
+
+25. functions are objects:first class functions,是指可以把函数赋值给变量
+
+function greet(){
+    console.log('hi');
+}
+
+greet.language='english';
+
+26. function statements and function expression:
+
+expression:a unit of code that results in a value, it doesn't hae to save to a varialbl
+
+在js文件撞见一个变量a,在控制台输入回车：
+
+a=3;
+1+2;
+
+两者都会返回结果3.以上就是expression,因为都返回值。 =和+是操作符，但同时也是特殊的函数。expression可以赋值给一个变量。
+
+但以下就是一个statement,不能赋值给一个变量
+var a;
+if(a===3){}
+
+statement just does work and expression reslts in a value.
+
+接着，以下就是一个function statement:
+
+function greet(){
+    console.log('hi');
+}
+
+greet在语义上是函数，实际上也是一个对象，这个对象的key是greet,语句就是它的值，是invocable的。
+
+接下来就是function expression,因为返回值。
+
+var anonymousGreet = function(){
+    console.log('hi');
+}
+
+最后，function statement和function expression有着不同的表现，在这里：
+
+greet();
+function greet(){}
+
+anonymousGreet();
+var anonymousGreet=function(){}
+
+上面这个不报错，下面这个报错，为什么？function expression需要执行才会返回一个值给变量，以上把anonynousGreet()写在前面，这时候变量anonyousGreet还是初始值undefined。也就是，没有执行=这个操作符，变量还是undefined.
+
+27. by value, by reference
+
+a=1; //a指向内存中的一个地址，这个地址的值是1
+b=a; //a复制了一份，b指向另一个地址，这个地址的值还是1
+这个过程，就是by value
+
+a={};//object的地址赋值给了a
+b=a;//同样的地址赋值给了b
+这个过程，就是by reference，这个过程没有重新复制一份
+
+有一个细节需要注意,=操作符会set up new memory space.
+
+var c = {greeting:'hi'};
+var d;
+d=c;
+console.log(c);
+console.log(d);
+
+function changeGreeting(obj){
+    obj.greeting='h';
+}
+changeGreeting(d);
+
+c = {greeting:'d'}
+
+28. Objects, Functions, and this:
+
+1.
+console.log(this);//this指的是window
+
+2.
+function a(){
+    console.log(this);
+}
+a();//this还是window
+
+3.
+var b = function(){
+    console.log(this);
+}
+b();//this还是window
+
+4.
+var c = {
+    name: '',
+    log: function(){
+        this.name='new name';
+        console.log(this);
+    }
+};
+c.log(); //this指的是对象
+
+5.
+var c ={
+    name: '',
+    log: function(){
+        //这里第一次改变
+        this.name='',
+        console.log(this);
+        
+        //这里第二次改变
+        //函数中的函数
+        //这里的execution context起来的时候，this指的是global object
+        var setname = function(newname){
+            this.name = newname;
+        }
+        setname('update');
+        console.log(this); //这里的改变是无效的？为啥？
+    }
+
+}
+c();
+
+如何姐姐这个this乱指向的问题呢？
+
+var c = {
+    name: '',
+    log: function(){
+        //先把c这个object的地址保存起来
+        var self = this;
+        
+        self.name='changed 1';
+        console.log(self);
+        
+        var setname = function(newname){
+            //这里会通过scope chain找到下一层execution context中的self这个变量
+            self.name = newname;
+        }
+        setname('change 2');
+        console.log(self);
+        
+    }
+
+};
+
+29. array:collections of anything
+
+var arr = [1,3,3];
+var arr = [1, false, 3];
+
+30. arguments and spread
+
+execution context中有variable environment, this, outer environment（和scope chain相关）,还有一个arguments
+
+1.
+function greet(firstname, lastname, language){
+    console.log(firstname);
+    consoel.log(lastname);
+    console.log(language);
+}
+greet();
+greet('john')
+greet('john','doe')
+
+2.
+function greet(firstname, lastname, language){
+    language = language || 'en';
+    
+    if(arguments.length ===0){
+        console.log('missing parameters')
+    }
+    
+    console.log(arguemnts);
+}
+
+30. function overloading
+
+function greet(firstname, lastname, language){
+    language = language || 'en';
+    if(language==='en'){
+        
+    }
+    if(language==='es'){}
+}
+
+function greetEnglish(firstname, lastname){
+    greet(firstname, lastname, 'en');
+}
+
+31.automatic semicolon insertion:这是一个很容易犯的一个错误，同时也是很难找到的一个错误。分号在javascrip中是可选的。javascriptd的syntax parser在看到return的时候，如果代码中没有，就自动加一个分号在return后面。
+
+function getPerson(){
+    return
+    {
+        firstname:''
+    }
+}
+console.log(getPerson());//undefined
+
+正确的写法是：
+
+function getPerson(){
+    return {
+        firstname:''
+    }
+}
+
+32. whitespace
+
+var 
+    //firstname of the person
+    firstname,
+    
+    //lastname of the person
+    lastname,
+    
+    //the language
+    laguage;
+    
+var person ={
+    firstname:'',
+    lastname:''
+};
+console.log(person);
+
+33. Immediately invoked functions expressions, IIFEs
+
+1.
+var greeting = function(name){
+    console.log('dd ' + name)
+}('john');
+
+2.
+var firstname='';
+
+(function(name){
+    var greeting = 'hello ';
+    console.log(greeting + ' ' + name);
+}(firstname))
+
+IIFEs and Safe Code，就是说里面的变量不受外面影响。
+
+
+34. closure
+
+1.
+function greet(whattosay){
+    return function(name){
+        console.log(whattosay + ' ' + name);
+    }
+}
+greet('Hi')('Tony');
+
+以上，当greet的execution context完成，exeution context没有了，但memory space依然在哪里，没有被垃圾回收机制回收，执行内部函数的时候，这个内部函数有一个environmnet reference，内部函数通过scope chain去内存中找自己所需要的变量，而这个变量是外部函数在执行销毁的时候留在内存里的。内部函数执行时的execution context + 外部函数留下的那块内存空间，就叫做closure.
+
+2.
+function buildFunctions(){
+    var arr = [];
+    for(var i=0;i<3;i++){
+        arr.push(
+            function(){
+                console.log(i);
+            }
+        );
+    }
+}
+var fs = buildFuctions();
+fs[0]();//3
+fs[1]();//3
+fs[2]();//3
+
+3. 如果想输出0,1,2呢？
+function buildFunctions(){
+    var arr = [];
+    for(var i=0;i<3;i++){
+        let j = i;
+        arr.push(
+            function(){
+                //无论闭包里的变量i怎样变化，这里不受影响
+                console.log(j);
+            }
+        )
+    }
+}
+
+4.使用自触发函数也能解决这个问题
+arr.push(
+    (function(j){
+        return function(){ 
+            //这里也使用cloure中的变量j
+            console.log(j);
+        }
+    }(i))//没传入一个i就形成一个独立的execution context，相互不受影响
+)
+
+35. function facotory：使用闭包创建函数工厂。
+
+fuction makeGreeting(language){
+    return function(firstname, lastname){
+        if(language == 'en'){
+            console.log('hello ' +firstname + ' ' + lastname );
+        }
+        
+        if(language ==='es'){
+            console.log('Hola ' + firstname + ' ' + lastname);
+        }
+    }
+}
+var greetEnglish = makeGreeting('en');
+var greetSpanish = makeGreeting('es');
+greetEnglsih('John','Doe');
+greetSpanish('John','Hey');
+
+外部函数的execution context销售后，在内存上留下了空间，这个空间和内部函数的execution context形成了闭包。
+
+36. closure and callback
+
+1.
+function sayHiLater(){
+    var greeting = 'hi';
+    
+    //3秒钟后，还能获取到greeting这个变量
+    //setTimeout的形参是是一个first-class function, callback function, function expression
+    setTimeout(function(){
+        console.log(greeting);
+    }, 3000)
+}
+sayHiLater();
+
+2.
+function tellMeWhenDone(callback){
+    //somework
+    
+    callback();
+}
+tellMeWhenDone(function(){
+    alert('');
+});
+
+37. call(),apply(),bind()
+
+函数名.bind(实例名)； bind设置this的指向，并不执行。
+
+函数名.call(实例名，参数列表); call设置this的指向，执行，并且可以传入参数。
+
+函数名.apply(实例名,有关参数的数组列表);appy设置this指向，执行，并且传入有关参数的数组对象
+
+38. functional programming:
+
+var arr1=[1,2,3];
+var arr2=[];
+for(var i=0;i<arr1.length;i++){
+    arr2.push(ar1[i]*2);
+}
+
+以上可以提炼成一个函数。
+
+function mapForEach(arr, fn){
+    var newArr=[];
+    for(var i=0;i<arr.length;i++){
+        newArr.push(fn(arr[i]));
+    }
+    return newArr;
+}
+
+var arr2 = mapForEac(arr1, function(item){
+    return item*2;
+})
+
+
+
+
+
+
+
+
+
+
+
